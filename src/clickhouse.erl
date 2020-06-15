@@ -8,12 +8,8 @@
         , stop/1
         ]).
 
-% -export ([ insert/2
-%          , insert/3
-%          , query/2
-%          , query/3
-%          ]).
--export ([ insert/4
+-export ([ insert/3
+         , status/1
          ]).
 
 %% gen_server.
@@ -25,7 +21,7 @@
         , code_change/3
         ]).
 
--record(state, {}).
+-record(state, {url, user, key}).
 
 %% API.
 -spec start_link() -> {ok, pid()}.
@@ -38,23 +34,26 @@ start_link(Opts) ->
 stop(Pid) ->
     gen_server:stop(Pid).
 
-insert(Url, Username, Password, SQL) ->
-    Headers = [{<<"X-ClickHouse-User">>, Username},
-               {<<"X-ClickHouse-Key">>, <<"123456">>}],
-    Options = [{pool, default},
-               {connect_timeout, 10000},
-               {recv_timeout, 30000},
-               {follow_redirectm, true},
-               {max_redirect, 5},
-               with_body],
-    Res = hackney:request(post, Url, Headers, SQL, Options),
-    io:format("---~p~n", [Res]).
+insert(Pid, SQL, Opts) ->
+    gen_server:call(Pid, {insert, SQL, Opts}).
+
+status(Pid) ->
+    gen_server:call(Pid, status).
 
 %% gen_server.
-
 init([Opts]) ->
-    State = #state{},
+    State = #state{url = proplists:get_value(url, Opts, "http://127.0.0.1:8123"),
+                   user = proplists:get_value(user, Opts, "default"),
+                   key =  proplists:get_value(key, Opts, "123456")},
     {ok, State}.
+
+handle_call({insert, SQL, _Opts}, _From, State = #state{url = Url, user = User, key =  Key}) ->
+    Reply = query(Url, User, Key, SQL),
+    {reply, Reply, State};
+
+handle_call(status, _From, State = #state{url = Url, user = User, key =  Key}) ->
+    Reply = query(Url, User, Key, <<"SELECT 1">>),
+    {reply, Reply, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
@@ -70,3 +69,23 @@ terminate(_Reason, _State) ->
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+query(Url, User, Key, SQL) ->
+    Headers = [{<<"X-ClickHouse-User">>, User},
+               {<<"X-ClickHouse-Key">>, Key}],
+    Options = [{pool, default},
+               {connect_timeout, 10000},
+               {recv_timeout, 30000},
+               {follow_redirectm, true},
+               {max_redirect, 5},
+               with_body],
+    case hackney:request(post, Url, Headers, SQL, Options) of
+        {ok, StatusCode, _Headers, ResponseBody}
+          when StatusCode =:= 200 orelse StatusCode =:= 204 ->
+            {ok, StatusCode, ResponseBody};
+        {ok, StatusCode, _Headers, ResponseBody} ->
+            {error, {StatusCode, ResponseBody}};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
