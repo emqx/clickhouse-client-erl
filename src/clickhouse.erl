@@ -55,7 +55,7 @@ handle_call(status, _From, State = #state{url = Url, user = User, key =  Key}) -
     case query(Url, User, Key, <<"SELECT 1">>) of
         {ok, _, _} -> {reply, true, State};
         _ -> {reply, false, State}
-    end.
+    end;
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
