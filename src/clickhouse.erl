@@ -44,7 +44,7 @@ status(Pid) ->
 init([Opts]) ->
     State = #state{url = proplists:get_value(url, Opts, "http://127.0.0.1:8123"),
                    user = proplists:get_value(user, Opts, "default"),
-                   key =  proplists:get_value(key, Opts, "123456")
+                   key =  proplists:get_value(key, Opts, "123456"),
                    pool = proplists:get_value(pool, Opts, default)},
     {ok, State}.
 
