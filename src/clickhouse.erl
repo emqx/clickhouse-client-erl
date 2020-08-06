@@ -21,7 +21,7 @@
         , code_change/3
         ]).
 
--record(state, {url, user, key}).
+-record(state, {url, user, key, pool}).
 
 %% API.
 -spec start_link() -> {ok, pid()}.
@@ -44,15 +44,16 @@ status(Pid) ->
 init([Opts]) ->
     State = #state{url = proplists:get_value(url, Opts, "http://127.0.0.1:8123"),
                    user = proplists:get_value(user, Opts, "default"),
-                   key =  proplists:get_value(key, Opts, "123456")},
+                   key =  proplists:get_value(key, Opts, "123456")
+                   pool = proplists:get_value(pool, Opts, default)},
     {ok, State}.
 
-handle_call({insert, SQL, _Opts}, _From, State = #state{url = Url, user = User, key =  Key}) ->
-    Reply = query(Url, User, Key, SQL),
+handle_call({insert, SQL, _Opts}, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
+    Reply = query(Pool, Url, User, Key, SQL),
     {reply, Reply, State};
 
-handle_call(status, _From, State = #state{url = Url, user = User, key =  Key}) ->
-    case query(Url, User, Key, <<"SELECT 1">>) of
+handle_call(status, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
+    case query(Pool, Url, User, Key, <<"SELECT 1">>) of
         {ok, _, _} -> {reply, true, State};
         _ -> {reply, false, State}
     end;
@@ -72,10 +73,10 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-query(Url, User, Key, SQL) ->
+query(Pool, Url, User, Key, SQL) ->
     Headers = [{<<"X-ClickHouse-User">>, User},
                {<<"X-ClickHouse-Key">>, Key}],
-    Options = [{pool, default},
+    Options = [{pool, Pool},
                {connect_timeout, 10000},
                {recv_timeout, 30000},
                {follow_redirectm, true},
