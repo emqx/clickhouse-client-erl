@@ -8,7 +8,7 @@
         , stop/1
         ]).
 
--export ([ insert/3
+-export ([ query/3
          , status/1
          ]).
 
@@ -34,21 +34,26 @@ start_link(Opts) ->
 stop(Pid) ->
     gen_server:stop(Pid).
 
-insert(Pid, SQL, Opts) ->
-    gen_server:call(Pid, {insert, SQL, Opts}).
+query(Pid, SQL, Opts) ->
+    gen_server:call(Pid, {SQL, Opts}).
 
 status(Pid) ->
     gen_server:call(Pid, status).
 
 %% gen_server.
 init([Opts]) ->
-    State = #state{url = proplists:get_value(url, Opts, "http://127.0.0.1:8123"),
-                   user = proplists:get_value(user, Opts, "default"),
-                   key =  proplists:get_value(key, Opts, "123456"),
+    Url0 = proplists:get_value(url, Opts, <<"http://127.0.0.1:8123">>),
+    Url = case proplists:get_value(database, Opts) of
+        undefined -> Url0;
+        DB -> <<Url0/binary, "?database=", DB/binary>>
+    end,
+    State = #state{url = Url,
+                   user = proplists:get_value(user, Opts, <<"default">>),
+                   key =  proplists:get_value(key, Opts, <<"123456">>),
                    pool = proplists:get_value(pool, Opts, default)},
     {ok, State}.
 
-handle_call({insert, SQL, _Opts}, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
+handle_call({SQL, _Opts}, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
     Reply = query(Pool, Url, User, Key, SQL),
     {reply, Reply, State};
 
