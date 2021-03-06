@@ -9,6 +9,7 @@
         ]).
 
 -export ([ query/3
+         , execute/3
          , status/1
          ]).
 
@@ -36,6 +37,9 @@ stop(Pid) ->
 
 query(Pid, SQL, Opts) ->
     gen_server:call(Pid, {SQL, Opts}).
+
+execute(Pid, SQL, Opts) ->
+    gen_server:cast(Pid, {SQL, Opts}).
 
 status(Pid) ->
     gen_server:call(Pid, status).
@@ -65,6 +69,10 @@ handle_call(status, _From, State = #state{url = Url, user = User, key =  Key, po
 
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
+
+handle_cast({SQL, _Opts}, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
+    query(Pool, Url, User, Key, SQL),
+    {noreply, State};
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
