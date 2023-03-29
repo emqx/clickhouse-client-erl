@@ -11,6 +11,7 @@
 -export ([ query/3
          , execute/3
          , status/1
+         , detailed_status/1
          ]).
 
 %% gen_server.
@@ -41,8 +42,16 @@ query(Pid, SQL, Opts) ->
 execute(Pid, SQL, Opts) ->
     gen_server:cast(Pid, {SQL, Opts}).
 
+%% This is kept for backwards compatibility. Most applications should
+%% use detailed_status/1 as it provides more information about the status.
+-spec status(pid()) -> true | false.
 status(Pid) ->
     gen_server:call(Pid, status).
+
+-spec detailed_status(pid()) -> ok | {error, Reason} when 
+      Reason :: term().
+detailed_status(Pid) ->
+    gen_server:call(Pid, detailed_status).
 
 %% gen_server.
 init([Opts]) ->
@@ -65,6 +74,19 @@ handle_call(status, _From, State = #state{url = Url, user = User, key =  Key, po
     case query(Pool, Url, User, Key, <<"SELECT 1">>) of
         {ok, _, _} -> {reply, true, State};
         _ -> {reply, false, State}
+    end;
+
+handle_call(detailed_status, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
+    case query(Pool, Url, User, Key, <<"SELECT 1">>) of
+        {ok, 200, Response} -> 
+            case erlang:iolist_to_binary(string:trim(Response)) of
+               <<"1">> ->
+                    {reply, ok, State};
+                UnexpectedResponse -> 
+                    {reply, {error, {unexpected_response, UnexpectedResponse}}, State}
+            end;
+        Error -> 
+            {reply, {error, Error}, State}
     end;
 
 handle_call(_Request, _From, State) ->
