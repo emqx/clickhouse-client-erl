@@ -20,6 +20,8 @@
         , handle_info/2
         , terminate/2
         , code_change/3
+        , format_status/1
+        , format_status/2
         ]).
 
 -record(state, {url, user, key, pool}).
@@ -86,6 +88,12 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+format_status(#{state := State} = Status) ->
+    Status#{state := State#state{key = <<"******">>}}.
+
+format_status(_Opt, [_PDict, State]) ->
+    [{data, [{"State", State#state{key = <<"******">>}}]}].
+
 query(Pool, Url, User, Key, SQL) ->
     Headers = [{<<"X-ClickHouse-User">>, User},
                {<<"X-ClickHouse-Key">>, Key}],
@@ -104,4 +112,3 @@ query(Pool, Url, User, Key, SQL) ->
         {error, Reason} ->
             {error, Reason}
     end.
-
