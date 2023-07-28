@@ -1,0 +1,11 @@
+%% -*- mode: erlang -*-
+%% Unless you know what you are doing, DO NOT edit manually!!
+{VSN,
+  [{"0.3",
+    [{load_module,clickhouse,brutal_purge,soft_purge,[]}
+    ]},
+   {<<".*">>,[{restart_application, clickhouse}]}],
+  [{"0.3",
+    [{load_module,clickhouse,brutal_purge,soft_purge,[]}
+    ]},
+   {<<".*">>,[{restart_application, clickhouse}]}]}.

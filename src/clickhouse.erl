@@ -9,6 +9,7 @@
         ]).
 
 -export ([ query/3
+         , query/4
          , execute/3
          , status/1
          , detailed_status/1
@@ -39,7 +40,10 @@ stop(Pid) ->
     gen_server:stop(Pid).
 
 query(Pid, SQL, Opts) ->
-    gen_server:call(Pid, {SQL, Opts}).
+    gen_server:call(Pid, {SQL, Opts}, infinity).
+
+query(Pid, SQL, Opts, Timeout) ->
+    gen_server:call(Pid, {SQL, Opts}, Timeout).
 
 execute(Pid, SQL, Opts) ->
     gen_server:cast(Pid, {SQL, Opts}).
@@ -50,7 +54,7 @@ execute(Pid, SQL, Opts) ->
 status(Pid) ->
     gen_server:call(Pid, status).
 
--spec detailed_status(pid()) -> ok | {error, Reason} when 
+-spec detailed_status(pid()) -> ok | {error, Reason} when
       Reason :: term().
 detailed_status(Pid) ->
     gen_server:call(Pid, detailed_status).
@@ -80,14 +84,14 @@ handle_call(status, _From, State = #state{url = Url, user = User, key =  Key, po
 
 handle_call(detailed_status, _From, State = #state{url = Url, user = User, key =  Key, pool = Pool}) ->
     case query(Pool, Url, User, Key, <<"SELECT 1">>) of
-        {ok, 200, Response} -> 
+        {ok, 200, Response} ->
             case erlang:iolist_to_binary(string:trim(Response)) of
                <<"1">> ->
                     {reply, ok, State};
-                UnexpectedResponse -> 
+                UnexpectedResponse ->
                     {reply, {error, {unexpected_response, UnexpectedResponse}}, State}
             end;
-        Error -> 
+        Error ->
             {reply, {error, Error}, State}
     end;
 
