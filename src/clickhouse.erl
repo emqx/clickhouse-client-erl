@@ -13,6 +13,7 @@
          , execute/3
          , status/1
          , detailed_status/1
+         , detailed_status/2
          ]).
 
 %% gen_server.
@@ -57,7 +58,12 @@ status(Pid) ->
 -spec detailed_status(pid()) -> ok | {error, Reason} when
       Reason :: term().
 detailed_status(Pid) ->
-    gen_server:call(Pid, detailed_status).
+    detailed_status(Pid, 5_000).
+
+-spec detailed_status(pid(), timeout()) -> ok | {error, Reason} when
+      Reason :: term().
+detailed_status(Pid, Timeout) ->
+    gen_server:call(Pid, detailed_status, Timeout).
 
 %% gen_server.
 init([Opts]) ->
