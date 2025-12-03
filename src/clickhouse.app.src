@@ -1,6 +1,6 @@
 {application,clickhouse,
              [{description,"ClickHouse Client"},
-              {vsn,"0.3"},
+              {vsn,git},
               {modules,[]},
               {registered,[clickhouse_sup]},
               {applications,[kernel,stdlib,hackney]},
