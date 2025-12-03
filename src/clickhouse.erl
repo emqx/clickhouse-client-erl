@@ -24,8 +24,12 @@
         , terminate/2
         , code_change/3
         , format_status/1
-        , format_status/2
         ]).
+
+-if(?OTP_RELEASE < 25).
+-export([ format_status/2
+        ]).
+-endif.
 
 -record(state, {url, user, key, pool}).
 
@@ -123,8 +127,10 @@ code_change(_OldVsn, State, _Extra) ->
 format_status(#{state := State} = Status) ->
     Status#{state := State#state{key = <<"******">>}}.
 
+-if(?OTP_RELEASE < 25).
 format_status(_Opt, [_PDict, State]) ->
     [{data, [{"State", State#state{key = <<"******">>}}]}].
+-endif.
 
 query(Pool, Url, User, Key, SQL) ->
     Headers = [{<<"X-ClickHouse-User">>, User},

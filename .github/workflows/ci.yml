@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Erlang/OTP
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: '28.1'
+        rebar3-version: '3.25'
+
+    - name: Compile
+      run: rebar3 compile
+
+    - name: Xref check
+      run: rebar3 xref
+
+    - name: Dialyzer check
+      run: rebar3 dialyzer
