@@ -127,11 +127,25 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 format_status(#{state := State} = Status) ->
-    Status#{state := State#state{key = <<"******">>}}.
+    SSLOpts = redact_ssl_opts(State#state.ssl_opts),
+    Status#{state := State#state{key = <<"******">>, ssl_opts = SSLOpts}};
+format_status(Status) ->
+    Status.
+
+redact_ssl_opts(SSLOpts0) ->
+    lists:map(
+      fun({password, _}) ->
+              {password, <<"******">>};
+         (X) ->
+              X
+      end,
+      SSLOpts0
+     ).
 
 -if(?OTP_RELEASE < 25).
 format_status(_Opt, [_PDict, State]) ->
-    [{data, [{"State", State#state{key = <<"******">>}}]}].
+    SSLOpts = redact_ssl_opts(State#state.ssl_opts),
+    [{data, [{"State", State#state{key = <<"******">>, ssl_opts = SSLOpts}}]}].
 -endif.
 
 do_query(SQL, State) ->
